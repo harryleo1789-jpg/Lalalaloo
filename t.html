@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grab Driver & Personal Finance Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        grab: {
+                            DEFAULT: '#00B14F',
+                            dark: '#008E3F',
+                            light: '#E6F7ED',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Kanit', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Kanit', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 9999px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 min-h-full flex flex-col transition-colors duration-200">
+
+    <!-- Top Header -->
+    <header class="bg-grab text-white sticky top-0 z-30 shadow-md">
+        <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-9 h-9 bg-white text-grab rounded-full flex items-center justify-center font-bold text-lg shadow-sm">
+                    <i class="fa-solid fa-car-side"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base leading-tight">Grab FinTrack</h1>
+                    <p class="text-xs text-emerald-100">บันทึกรายได้ & แบ่งกระปุกออม</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="themeToggle" class="p-2 rounded-full hover:bg-black/10 transition-colors" title="เปลี่ยนธีม">
+                    <i class="fa-solid fa-moon text-lg" id="themeIcon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-md w-full mx-auto p-4 pb-24 space-y-5">
+
+        <!-- TAB 1: ENTRY FORM & LIVE PREVIEW -->
+        <section id="tab-entry" class="tab-content space-y-4">
+            
+            <!-- Quick Summary Header -->
+            <div class="bg-gradient-to-r from-emerald-600 to-grab text-white rounded-2xl p-4 shadow-lg space-y-3">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <div class="text-xs text-emerald-100 mb-0.5">เงินคงเหลือสุทธิใช้จ่ายวันนี้ (สะสม)</div>
+                        <div class="text-3xl font-extrabold tracking-tight" id="todayTakeHome">฿0.00</div>
+                    </div>
+                    <!-- Daily Target Setting Button -->
+                    <button onclick="openTargetModal()" class="bg-white/20 hover:bg-white/30 text-xs px-2.5 py-1.5 rounded-xl backdrop-blur-sm transition-colors text-right">
+                        <i class="fa-solid fa-bullseye"></i> เป้าหมายวันละ <span id="displayDailyGoal">1,500</span> ฿
+                    </button>
+                </div>
+
+                <!-- Daily Target Progress Bar -->
+                <div class="space-y-1 pt-1 border-t border-white/20">
+                    <div class="flex justify-between text-[11px] text-emerald-100">
+                        <span>ความคืบหน้ารายรับวันนี้ (Gross)</span>
+                        <span id="dailyProgressText">0%</span>
+                    </div>
+                    <div class="w-full bg-black/20 rounded-full h-2 overflow-hidden">
+                        <div id="dailyProgressBar" class="bg-amber-300 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 text-center pt-2 border-t border-white/20 text-xs">
+                    <div>
+                        <span class="block text-emerald-100">รายรับรวม</span>
+                        <span class="font-semibold text-sm" id="todayGross">฿0</span>
+                    </div>
+                    <div>
+                        <span class="block text-emerald-100">น้ำมัน/รายจ่าย</span>
+                        <span class="font-semibold text-sm text-red-200" id="todayFuel">฿0</span>
+                    </div>
+                    <div>
+                        <span class="block text-emerald-100">เข้ากระปุก</span>
+                        <span class="font-semibold text-sm text-amber-200" id="todayBuckets">฿0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Record Form Mode Selector -->
+            <div class="grid grid-cols-2 gap-2 p-1 bg-gray-200 dark:bg-gray-800 rounded-xl text-xs font-semibold">
+                <button id="btnModeIncome" onclick="setEntryMode('income')" class="py-2.5 rounded-lg transition-all bg-white dark:bg-gray-700 text-grab shadow-sm flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-car"></i> บันทึกรอบวิ่ง / รายได้
+                </button>
+                <button id="btnModeExpense" onclick="setEntryMode('expense')" class="py-2.5 rounded-lg transition-all text-gray-600 dark:text-gray-400 hover:text-gray-900 flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-receipt"></i> บันทึกค่าใช้จ่ายเบ็ดเตล็ด
+                </button>
+            </div>
+
+            <!-- FORM 1: Income / Ride Entry Form -->
+            <div id="formIncomeContainer" class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+                <h2 class="font-bold text-base flex items-center gap-2 text-gray-800 dark:text-gray-100">
+                    <i class="fa-solid fa-pen-to-square text-grab"></i> บันทึกรอบวิ่ง & รายได้
+                </h2>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-300">วันที่</label>
+                        <input type="date" id="inputDate" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-grab focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-300">รอบ / ช่วงเวลา</label>
+                        <input type="text" id="inputNote" placeholder="เช่น รอบเช้า, วิ่งทั้งวัน" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-grab focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-300">
+                            1. รายรับรวม Gross (฿) <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-gray-400 text-sm">฿</span>
+                            <input type="number" id="inputGross" placeholder="0" min="0" step="any" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl pl-8 pr-3 py-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400 focus:ring-2 focus:ring-grab focus:outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-300">
+                            2. ค่าน้ำมัน Fuel (฿)
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-gray-400 text-sm">฿</span>
+                            <input type="number" id="inputFuel" placeholder="0" min="0" step="any" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl pl-8 pr-3 py-2 text-sm font-semibold text-rose-500 focus:ring-2 focus:ring-grab focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Allocation Breakdown Card -->
+                <div class="bg-slate-50 dark:bg-gray-900/60 rounded-xl p-3 border border-slate-200 dark:border-gray-700/80 space-y-2">
+                    <div class="flex justify-between items-center text-xs font-semibold text-gray-500 dark:text-gray-400 border-b pb-2 border-gray-200 dark:border-gray-700">
+                        <span><i class="fa-solid fa-calculator text-grab"></i> สรุปการหักเงินแบบเรียลไทม์</span>
+                        <a href="#" onclick="switchTab('tab-buckets'); return false;" class="text-grab hover:underline text-[11px]">แก้ไขกระปุก %</a>
+                    </div>
+
+                    <div class="space-y-1.5 text-xs">
+                        <div class="flex justify-between text-gray-700 dark:text-gray-300">
+                            <span>รายรับรวม (Gross)</span>
+                            <span class="font-medium" id="previewGross">฿0.00</span>
+                        </div>
+                        <div class="flex justify-between text-red-500">
+                            <span>หักค่าน้ำมัน</span>
+                            <span class="font-medium" id="previewTotalDeductions">- ฿0.00</span>
+                        </div>
+                        <div class="flex justify-between font-semibold text-gray-800 dark:text-gray-200 pt-1 border-t border-dashed border-gray-200 dark:border-gray-700">
+                            <span>รายได้สุทธิหลังหักน้ำมัน (Net)</span>
+                            <span id="previewNet" class="text-grab">฿0.00</span>
+                        </div>
+
+                        <div class="pt-2 border-t border-gray-200 dark:border-gray-700 space-y-1.5">
+                            <div class="text-[11px] text-gray-500 dark:text-gray-400 font-medium flex justify-between">
+                                <span>รายการหักเข้ากระปุกออม</span>
+                                <span id="previewBucketCount">0 กระปุก</span>
+                            </div>
+                            
+                            <div id="previewBucketList" class="space-y-1 pl-2 text-amber-700 dark:text-amber-400">
+                                <div class="text-gray-400 italic text-[11px]">ไม่มีกระปุกออมที่เปิดใช้งาน</div>
+                            </div>
+
+                            <div class="flex justify-between font-medium text-amber-600 dark:text-amber-400 pt-1 border-t border-dashed border-gray-200 dark:border-gray-700">
+                                <span>รวมหักเข้ากระปุกทั้งหมด</span>
+                                <span id="previewTotalBuckets">- ฿0.00</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30 rounded-xl p-3 flex justify-between items-center text-grab dark:text-emerald-400">
+                            <div>
+                                <div class="text-[11px] text-gray-500 dark:text-gray-300 font-medium">เงินคงเหลือสุทธิใช้จ่ายส่วนตัว</div>
+                                <div class="text-xs text-gray-400">(รายได้สุทธิ - รวมหักกระปุก)</div>
+                            </div>
+                            <div class="text-xl font-bold" id="previewTakeHome">
+                                ฿0.00
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="btnSaveEntry" onclick="saveEntry()" class="w-full bg-grab hover:bg-grab-dark text-white font-semibold py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
+                    <i class="fa-solid fa-floppy-disk"></i> บันทึกรอบวิ่งรายการนี้
+                </button>
+            </div>
+
+            <!-- FORM 2: Separate Extra Expense Entry Form -->
+            <div id="formExpenseContainer" class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 space-y-4 hidden">
+                <h2 class="font-bold text-base flex items-center gap-2 text-rose-500">
+                    <i class="fa-solid fa-receipt"></i> บันทึกค่าใช้จ่ายอื่นๆ / เบ็ดเตล็ด
+                </h2>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-300">วันที่</label>
+                        <input type="date" id="expenseDate" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-300">หมวดหมู่ / รายการ</label>
+                        <input type="text" id="expenseNote" placeholder="เช่น ค่าอาหาร, ค่าซ่อมรถ, ค่าทางด่วน" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-300">
+                        จำนวนเงินค่าใช้จ่าย (฿) <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2.5 text-gray-400 text-sm">฿</span>
+                        <input type="number" id="inputExpenseAmount" placeholder="0" min="0" step="any" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl pl-8 pr-3 py-2 text-sm font-semibold text-rose-500 focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/40 p-3 rounded-xl text-xs text-rose-700 dark:text-rose-300 space-y-1">
+                    <div class="font-semibold flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-info"></i> คำแนะนำ
+                    </div>
+                    <p>รายการนี้จะถูกบันทึกเป็นค่าใช้จ่ายตัดออกจากเงินคงเหลือใช้จ่ายประจำวันโดยตรง</p>
+                </div>
+
+                <button onclick="saveExpenseEntry()" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-semibold py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
+                    <i class="fa-solid fa-floppy-disk"></i> บันทึกรายการค่าใช้จ่าย
+                </button>
+            </div>
+
+        </section>
+
+        <!-- TAB 2: BUCKETS / ALLOCATIONS MANAGEMENT -->
+        <section id="tab-buckets" class="tab-content hidden space-y-4">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 space-y-3">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="font-bold text-base flex items-center gap-2">
+                            <i class="fa-solid fa-piggy-bank text-amber-500"></i> ตั้งค่ากระปุกออม (% / ฿)
+                        </h2>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">กำหนดสัดส่วนหักอัตโนมัติจากรายได้หลังหักค่าใช้จ่าย</p>
+                    </div>
+                    <button onclick="openBucketModal()" class="bg-grab/10 text-grab dark:bg-grab/20 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-grab hover:text-white transition-colors">
+                        + เพิ่มกระปุก
+                    </button>
+                </div>
+
+                <div id="allocationPercentBar" class="bg-gray-100 dark:bg-gray-700/50 rounded-xl p-2.5 text-xs flex justify-between items-center">
+                    <span class="text-gray-600 dark:text-gray-300">สัดส่วนเปอร์เซ็นต์รวมที่ตั้งไว้:</span>
+                    <span id="totalPercentText" class="font-bold text-grab">0%</span>
+                </div>
+
+                <div id="bucketsContainer" class="space-y-2"></div>
+            </div>
+        </section>
+
+        <!-- TAB 3: HISTORY FEED WITH REPORTS -->
+        <section id="tab-history" class="tab-content hidden space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-blue-500"></i> ประวัติการบันทึก
+                </h2>
+                <div class="flex gap-2">
+                    <button onclick="exportData()" class="text-xs text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 px-2.5 py-1.5 rounded-lg hover:opacity-80">
+                        <i class="fa-solid fa-download"></i> สำรอง
+                    </button>
+                    <label class="text-xs text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 px-2.5 py-1.5 rounded-lg cursor-pointer hover:opacity-80">
+                        <i class="fa-solid fa-upload"></i> นำเข้า
+                        <input type="file" id="importFile" accept=".json" onchange="importData(event)" class="hidden">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Feature 1: Weekly & Monthly Filters -->
+            <div class="grid grid-cols-3 gap-1.5 bg-gray-200 dark:bg-gray-800 p-1 rounded-xl text-xs font-medium text-center">
+                <button onclick="setHistoryFilter('today')" id="filter-today" class="py-1.5 rounded-lg transition-colors bg-grab text-white">วันนี้</button>
+                <button onclick="setHistoryFilter('week')" id="filter-week" class="py-1.5 rounded-lg transition-colors text-gray-600 dark:text-gray-300">สัปดาห์นี้</button>
+                <button onclick="setHistoryFilter('month')" id="filter-month" class="py-1.5 rounded-lg transition-colors text-gray-600 dark:text-gray-300">เดือนนี้</button>
+            </div>
+
+            <!-- Filter Summary Banner -->
+            <div id="filterSummaryCard" class="bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800/40 rounded-xl p-3 text-xs flex justify-between items-center text-blue-800 dark:text-blue-300">
+                <span id="filterSummaryLabel">ยอดรวมช่วงเวลานี้:</span>
+                <span id="filterSummaryVal" class="font-bold text-sm">฿0.00</span>
+            </div>
+
+            <div id="historyList" class="space-y-3"></div>
+        </section>
+
+        <!-- TAB 4: GOALS & ANALYTICS -->
+        <section id="tab-goals" class="tab-content hidden space-y-4">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="font-bold text-base flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-purple-500"></i> ยอดสะสมกระปุกออมทั้งหมด
+                    </h2>
+                    <span class="text-xs text-gray-400">กดเบิกเงินออกได้</span>
+                </div>
+                
+                <div id="bucketBalances" class="space-y-3"></div>
+            </div>
+
+            <!-- Feature 1: Monthly Analytics Report Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 space-y-3">
+                <h2 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-days text-indigo-500"></i> สรุปภาพรวมเดือนนี้
+                </h2>
+                <div class="grid grid-cols-2 gap-3 text-center">
+                    <div class="bg-indigo-50 dark:bg-indigo-950/40 p-3 rounded-xl border border-indigo-100 dark:border-indigo-800/40">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">รายรับรวมเดือนนี้</span>
+                        <div id="monthlyGross" class="text-base font-bold text-indigo-600 dark:text-indigo-400">฿0</div>
+                    </div>
+                    <div class="bg-rose-50 dark:bg-rose-950/40 p-3 rounded-xl border border-rose-100 dark:border-rose-800/40">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">ค่าน้ำมัน & รายจ่ายรวม</span>
+                        <div id="monthlyExpenses" class="text-base font-bold text-rose-500">฿0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 space-y-3">
+                <h2 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line text-emerald-500"></i> ภาพรวมตลอดชีพ (Lifetime)
+                </h2>
+                <div class="grid grid-cols-2 gap-3 text-center">
+                    <div class="bg-emerald-50 dark:bg-emerald-950/40 p-3 rounded-xl border border-emerald-100 dark:border-emerald-800/40">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">รายรับรวมทั้งหมด</span>
+                        <div id="totalLifetimeGross" class="text-lg font-bold text-grab">฿0</div>
+                    </div>
+                    <div class="bg-rose-50 dark:bg-rose-950/40 p-3 rounded-xl border border-rose-100 dark:border-rose-800/40">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">ค่าน้ำมันรวมทั้งหมด</span>
+                        <div id="totalLifetimeFuel" class="text-lg font-bold text-rose-500">฿0</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal for Adding/Editing Buckets -->
+    <div id="bucketModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b pb-2 dark:border-gray-700">
+                <h3 class="font-bold text-base" id="modalTitle">เพิ่มกระปุกใหม่</h3>
+                <button onclick="closeBucketModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <input type="hidden" id="bucketId">
+            <div>
+                <label class="block text-xs font-medium mb-1">ชื่อกระปุก / เป้าหมาย</label>
+                <input type="text" id="bucketName" placeholder="เช่น ทริปแฟน, ฉุกเฉิน" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-grab focus:outline-none">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium mb-1">รูปแบบการหัก</label>
+                    <select id="bucketType" onchange="toggleBucketTypeInput()" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-2 py-2 text-sm focus:ring-2 focus:ring-grab focus:outline-none">
+                        <option value="percent">เปอร์เซ็นต์ (%)</option>
+                        <option value="fixed">จำนวนเงิน (฿)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium mb-1" id="bucketValLabel">สัดส่วน (%)</label>
+                    <input type="number" id="bucketValue" min="0" step="any" placeholder="10" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-grab focus:outline-none">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium mb-1">เป้าหมายยอดสะสม (บาท)</label>
+                <input type="number" id="bucketTarget" min="0" placeholder="เช่น 5000" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-grab focus:outline-none">
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeBucketModal()" class="w-1/2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 py-2.5 rounded-xl font-medium text-sm">ยกเลิก</button>
+                <button onclick="saveBucket()" class="w-1/2 bg-grab text-white py-2.5 rounded-xl font-semibold text-sm shadow">บันทึก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature 4: Withdraw Modal -->
+    <div id="withdrawModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b pb-2 dark:border-gray-700">
+                <h3 class="font-bold text-base text-amber-600">เบิกเงินออกจากกระปุก</h3>
+                <button onclick="closeWithdrawModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <input type="hidden" id="withdrawBucketId">
+            <div class="text-xs text-gray-500 dark:text-gray-400">
+                กระปุก: <span id="withdrawBucketName" class="font-semibold text-gray-800 dark:text-gray-200"></span><br>
+                ยอดเงินปัจจุบัน: <span id="withdrawBucketCurrent" class="font-semibold text-grab"></span>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium mb-1">จำนวนเงินที่ต้องการเบิก (บาท)</label>
+                <input type="number" id="withdrawAmount" min="1" step="any" placeholder="0" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-grab focus:outline-none">
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeWithdrawModal()" class="w-1/2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 py-2.5 rounded-xl font-medium text-sm">ยกเลิก</button>
+                <button onclick="processWithdraw()" class="w-1/2 bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl font-semibold text-sm shadow">ยืนยันเบิก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature 3: Daily Target Setting Modal -->
+    <div id="targetModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b pb-2 dark:border-gray-700">
+                <h3 class="font-bold text-base">ตั้งเป้าหมายรายรับรายวัน</h3>
+                <button onclick="closeTargetModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div>
+                <label class="block text-xs font-medium mb-1">เป้าหมาย Gross ต่อวัน (บาท)</label>
+                <input type="number" id="inputDailyGoal" min="100" step="50" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-grab focus:outline-none">
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeTargetModal()" class="w-1/2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 py-2.5 rounded-xl font-medium text-sm">ยกเลิก</button>
+                <button onclick="saveDailyGoal()" class="w-1/2 bg-grab text-white py-2.5 rounded-xl font-semibold text-sm shadow">บันทึกเป้าหมาย</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-gray-900 text-white dark:bg-white dark:text-gray-900 px-4 py-2.5 rounded-xl text-xs font-medium shadow-xl opacity-0 pointer-events-none transition-all duration-300 z-50 flex items-center gap-2">
+        <i class="fa-solid fa-circle-check text-grab"></i>
+        <span id="toastMsg">บันทึกเรียบร้อย</span>
+    </div>
+
+    <!-- Bottom Mobile Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-30 shadow-lg">
+        <div class="max-w-md mx-auto grid grid-cols-4 text-center">
+            <button onclick="switchTab('tab-entry')" id="nav-tab-entry" class="nav-btn py-2.5 text-grab font-medium text-xs flex flex-col items-center gap-1 transition-colors">
+                <i class="fa-solid fa-circle-plus text-lg"></i>
+                <span>ลงบัญชี</span>
+            </button>
+            <button onclick="switchTab('tab-buckets')" id="nav-tab-buckets" class="nav-btn py-2.5 text-gray-400 font-medium text-xs flex flex-col items-center gap-1 transition-colors">
+                <i class="fa-solid fa-pie-chart text-lg"></i>
+                <span>กระปุกออม</span>
+            </button>
+            <button onclick="switchTab('tab-history')" id="nav-tab-history" class="nav-btn py-2.5 text-gray-400 font-medium text-xs flex flex-col items-center gap-1 transition-colors">
+                <i class="fa-solid fa-list-check text-lg"></i>
+                <span>ประวัติ</span>
+            </button>
+            <button onclick="switchTab('tab-goals')" id="nav-tab-goals" class="nav-btn py-2.5 text-gray-400 font-medium text-xs flex flex-col items-center gap-1 transition-colors">
+                <i class="fa-solid fa-bullseye text-lg"></i>
+                <span>เป้าหมาย</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        const DEFAULT_BUCKETS = [
+            { id: 'b1', name: 'ออมทริปแฟน', type: 'percent', value: 40, target: 5000, enabled: true },
+            { id: 'b2', name: 'ค่าอาหาร & ใช้จ่าย', type: 'percent', value: 30, target: 0, enabled: true },
+            { id: 'b3', name: 'เงินออมฉุกเฉิน', type: 'percent', value: 10, target: 10000, enabled: true },
+            { id: 'b4', name: 'ค่าบำรุงรักษารถ', type: 'percent', value: 10, target: 3000, enabled: true }
+        ];
+
+        let state = {
+            buckets: [],
+            entries: [],
+            withdraws: [],
+            dailyGoal: 1500,
+            theme: 'light'
+        };
+
+        let historyFilter = 'today';
+        let currentEntryMode = 'income';
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            setupDefaults();
+            setupEventListeners();
+            renderAll();
+        });
+
+        function setupDefaults() {
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = document.getElementById('inputDate');
+            const expenseDateInput = document.getElementById('expenseDate');
+            if (dateInput) {
+                dateInput.value = today;
+                dateInput.max = today;
+            }
+            if (expenseDateInput) {
+                expenseDateInput.value = today;
+                expenseDateInput.max = today;
+            }
+        }
+
+        function loadState() {
+            try {
+                const savedState = localStorage.getItem('grab_fintrack_state');
+                if (savedState) {
+                    state = JSON.parse(savedState);
+                    if (!state.withdraws) state.withdraws = [];
+                    if (!state.dailyGoal) state.dailyGoal = 1500;
+                } else {
+                    state.buckets = DEFAULT_BUCKETS;
+                }
+            } catch (e) {
+                state.buckets = DEFAULT_BUCKETS;
+            }
+
+            if (state.theme === 'dark' || (!('theme' in state) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                state.theme = 'dark';
+            } else {
+                document.documentElement.classList.remove('dark');
+                state.theme = 'light';
+            }
+            updateThemeIcon();
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem('grab_fintrack_state', JSON.stringify(state));
+            } catch (e) {}
+        }
+
+        function setupEventListeners() {
+            document.getElementById('inputGross').addEventListener('input', updateLivePreview);
+            document.getElementById('inputFuel').addEventListener('input', updateLivePreview);
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+        }
+
+        function setEntryMode(mode) {
+            currentEntryMode = mode;
+            const btnIncome = document.getElementById('btnModeIncome');
+            const btnExpense = document.getElementById('btnModeExpense');
+            const formIncome = document.getElementById('formIncomeContainer');
+            const formExpense = document.getElementById('formExpenseContainer');
+
+            if (mode === 'income') {
+                btnIncome.className = "py-2.5 rounded-lg transition-all bg-white dark:bg-gray-700 text-grab shadow-sm flex items-center justify-center gap-1.5";
+                btnExpense.className = "py-2.5 rounded-lg transition-all text-gray-600 dark:text-gray-400 hover:text-gray-900 flex items-center justify-center gap-1.5";
+                formIncome.classList.remove('hidden');
+                formExpense.classList.add('hidden');
+            } else {
+                btnExpense.className = "py-2.5 rounded-lg transition-all bg-white dark:bg-gray-700 text-rose-500 shadow-sm flex items-center justify-center gap-1.5";
+                btnIncome.className = "py-2.5 rounded-lg transition-all text-gray-600 dark:text-gray-400 hover:text-gray-900 flex items-center justify-center gap-1.5";
+                formExpense.classList.remove('hidden');
+                formIncome.classList.add('hidden');
+            }
+        }
+
+        function calculateBreakdown(grossInput, fuelInput) {
+            const gross = parseFloat(grossInput) || 0;
+            const fuel = parseFloat(fuelInput) || 0;
+            const expense = 0;
+            const totalDeductions = fuel;
+            const net = Math.max(0, gross - totalDeductions);
+
+            let totalBucketsDeduction = 0;
+            const bucketBreakdown = [];
+
+            state.buckets.filter(b => b.enabled).forEach(bucket => {
+                let amount = 0;
+                if (bucket.type === 'percent') {
+                    amount = (net * bucket.value) / 100;
+                } else {
+                    amount = Math.min(net, bucket.value);
+                }
+
+                totalBucketsDeduction += amount;
+                bucketBreakdown.push({
+                    id: bucket.id,
+                    name: bucket.name,
+                    type: bucket.type,
+                    value: bucket.value,
+                    calculatedAmount: amount
+                });
+            });
+
+            const takeHomeCash = Math.max(0, net - totalBucketsDeduction);
+
+            return {
+                gross,
+                fuel,
+                expense,
+                totalDeductions,
+                net,
+                bucketBreakdown,
+                totalBucketsDeduction,
+                takeHomeCash
+            };
+        }
+
+        function updateLivePreview() {
+            const grossVal = document.getElementById('inputGross').value;
+            const fuelVal = document.getElementById('inputFuel').value;
+
+            const res = calculateBreakdown(grossVal, fuelVal);
+
+            document.getElementById('previewGross').textContent = `฿${res.gross.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+            document.getElementById('previewTotalDeductions').textContent = `- ฿${res.totalDeductions.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+            document.getElementById('previewNet').textContent = `฿${res.net.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+
+            const bucketListEl = document.getElementById('previewBucketList');
+            document.getElementById('previewBucketCount').textContent = `${res.bucketBreakdown.length} กระปุก`;
+
+            if (res.bucketBreakdown.length === 0) {
+                bucketListEl.innerHTML = `<div class="text-gray-400 italic text-[11px]">ไม่มีกระปุกออมที่เปิดใช้งาน</div>`;
+            } else {
+                bucketListEl.innerHTML = res.bucketBreakdown.map(b => {
+                    const labelStr = b.type === 'percent' ? `${b.value}%` : `฿${b.value}`;
+                    return `
+                        <div class="flex justify-between items-center text-[11px]">
+                            <span class="truncate pr-2">- ${b.name} (${labelStr})</span>
+                            <span class="font-medium whitespace-nowrap">฿${b.calculatedAmount.toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            document.getElementById('previewTotalBuckets').textContent = `- ฿${res.totalBucketsDeduction.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+            document.getElementById('previewTakeHome').textContent = `฿${res.takeHomeCash.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+        }
+
+        function saveEntry() {
+            const date = document.getElementById('inputDate').value;
+            const note = document.getElementById('inputNote').value.trim() || 'รอบวิ่งทั่วไป';
+            const gross = parseFloat(document.getElementById('inputGross').value);
+            const fuel = parseFloat(document.getElementById('inputFuel').value) || 0;
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            if (!date) { showToast('กรุณาระบุวันที่'); return; }
+            if (date > todayStr) { showToast('ไม่สามารถบันทึกข้อมูลล่วงหน้าได้'); return; }
+            if (isNaN(gross) || gross <= 0) { showToast('กรุณากรอกรายรับรวม (Gross) ให้ถูกต้อง'); return; }
+
+            const breakdown = calculateBreakdown(gross, fuel);
+
+            const entry = {
+                id: 'entry_' + Date.now(),
+                entryType: 'income',
+                date,
+                note,
+                createdAt: new Date().toISOString(),
+                ...breakdown
+            };
+
+            state.entries.unshift(entry);
+            saveState();
+
+            document.getElementById('inputGross').value = '';
+            document.getElementById('inputFuel').value = '';
+            document.getElementById('inputNote').value = '';
+            document.getElementById('inputDate').value = todayStr;
+
+            updateLivePreview();
+            renderAll();
+            showToast('บันทึกรอบวิ่งเรียบร้อยแล้ว');
+        }
+
+        function saveExpenseEntry() {
+            const date = document.getElementById('expenseDate').value;
+            const note = document.getElementById('expenseNote').value.trim() || 'ค่าใช้จ่ายเบ็ดเตล็ด';
+            const amount = parseFloat(document.getElementById('inputExpenseAmount').value);
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            if (!date) { showToast('กรุณาระบุวันที่'); return; }
+            if (date > todayStr) { showToast('ไม่สามารถบันทึกข้อมูลล่วงหน้าได้'); return; }
+            if (isNaN(amount) || amount <= 0) { showToast('กรุณากรอกจำนวนเงินค่าใช้จ่ายให้ถูกต้อง'); return; }
+
+            const entry = {
+                id: 'entry_' + Date.now(),
+                entryType: 'expense',
+                date,
+                note,
+                createdAt: new Date().toISOString(),
+                gross: 0,
+                fuel: 0,
+                expense: amount,
+                totalDeductions: amount,
+                net: 0,
+                bucketBreakdown: [],
+                totalBucketsDeduction: 0,
+                takeHomeCash: -amount
+            };
+
+            state.entries.unshift(entry);
+            saveState();
+
+            document.getElementById('inputExpenseAmount').value = '';
+            document.getElementById('expenseNote').value = '';
+            document.getElementById('expenseDate').value = todayStr;
+
+            renderAll();
+            showToast('บันทึกค่าใช้จ่ายเรียบร้อยแล้ว');
+        }
+
+        function deleteEntry(id) {
+            if (confirm('คุณต้องการลบรายการนี้ใช่หรือไม่?')) {
+                state.entries = state.entries.filter(e => e.id !== id);
+                saveState();
+                renderAll();
+                showToast('ลบรายการเรียบร้อยแล้ว');
+            }
+        }
+
+        function renderAll() {
+            renderTodaySummary();
+            renderBucketsTab();
+            renderHistoryTab();
+            renderGoalsTab();
+            updateLivePreview();
+        }
+
+        function renderTodaySummary() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const todayEntries = state.entries.filter(e => e.date === todayStr);
+
+            const totals = todayEntries.reduce((acc, curr) => {
+                acc.gross += curr.gross;
+                acc.fuel += curr.totalDeductions;
+                acc.buckets += curr.totalBucketsDeduction;
+                acc.takeHome += curr.takeHomeCash;
+                return acc;
+            }, { gross: 0, fuel: 0, buckets: 0, takeHome: 0 });
+
+            document.getElementById('todayTakeHome').textContent = `฿${totals.takeHome.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+            document.getElementById('todayGross').textContent = `฿${totals.gross.toLocaleString('th-TH')}`;
+            document.getElementById('todayFuel').textContent = `฿${totals.fuel.toLocaleString('th-TH')}`;
+            document.getElementById('todayBuckets').textContent = `฿${totals.buckets.toLocaleString('th-TH')}`;
+
+            // Daily Target Progress
+            const goal = state.dailyGoal || 1500;
+            document.getElementById('displayDailyGoal').textContent = goal.toLocaleString('th-TH');
+            const percent = Math.min(100, (totals.gross / goal) * 100);
+            document.getElementById('dailyProgressBar').style.width = `${percent}%`;
+            document.getElementById('dailyProgressText').textContent = `${percent.toFixed(0)}% (฿${totals.gross.toLocaleString()} / ฿${goal.toLocaleString()})`;
+        }
+
+        function renderBucketsTab() {
+            const container = document.getElementById('bucketsContainer');
+            let totalPercent = 0;
+
+            container.innerHTML = state.buckets.map(b => {
+                if (b.enabled && b.type === 'percent') totalPercent += b.value;
+
+                return `
+                    <div class="bg-gray-50 dark:bg-gray-700/60 p-3 rounded-xl border border-gray-200 dark:border-gray-600 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" ${b.enabled ? 'checked' : ''} onchange="toggleBucketEnabled('${b.id}')" class="w-4 h-4 text-grab rounded focus:ring-grab accent-grab">
+                            <div>
+                                <div class="font-semibold text-sm ${!b.enabled ? 'line-through text-gray-400' : ''}">${b.name}</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">
+                                    ${b.type === 'percent' ? `หักอัตโนมัติ ${b.value}%` : `หักคงที่ ฿${b.value}`}
+                                    ${b.target ? ` • เป้าหมาย ฿${b.target.toLocaleString('th-TH')}` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="openBucketModal('${b.id}')" class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" title="แก้ไข">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="deleteBucket('${b.id}')" class="p-1.5 text-rose-400 hover:text-rose-600" title="ลบ">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const totalPercentEl = document.getElementById('totalPercentText');
+            totalPercentEl.textContent = `${totalPercent}%`;
+            if (totalPercent > 100) {
+                totalPercentEl.className = 'font-bold text-rose-500';
+                totalPercentEl.textContent += ' (เกิน 100%)';
+            } else {
+                totalPercentEl.className = 'font-bold text-grab';
+            }
+        }
+
+        function setHistoryFilter(filter) {
+            historyFilter = filter;
+            ['today', 'week', 'month'].forEach(f => {
+                const btn = document.getElementById(`filter-${f}`);
+                if (f === filter) {
+                    btn.className = 'py-1.5 rounded-lg transition-colors bg-grab text-white';
+                } else {
+                    btn.className = 'py-1.5 rounded-lg transition-colors text-gray-600 dark:text-gray-300';
+                }
+            });
+            renderHistoryTab();
+        }
+
+        function renderHistoryTab() {
+            const container = document.getElementById('historyList');
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+
+            let filteredEntries = state.entries.filter(e => {
+                const eDate = new Date(e.date);
+                if (historyFilter === 'today') {
+                    return e.date === todayStr;
+                } else if (historyFilter === 'week') {
+                    const firstDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
+                    return eDate >= firstDayOfWeek;
+                } else if (historyFilter === 'month') {
+                    return eDate.getMonth() === new Date().getMonth() && eDate.getFullYear() === new Date().getFullYear();
+                }
+                return true;
+            });
+
+            const sumGross = filteredEntries.reduce((acc, curr) => acc + curr.gross, 0);
+            document.getElementById('filterSummaryLabel').textContent = 
+                historyFilter === 'today' ? 'ยอดรับรวมวันนี้:' : 
+                historyFilter === 'week' ? 'ยอดรับรวมสัปดาห์นี้:' : 'ยอดรับรวมเดือนนี้:';
+            document.getElementById('filterSummaryVal').textContent = `฿${sumGross.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+
+            if (filteredEntries.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-400 text-sm">
+                        <i class="fa-solid fa-receipt text-3xl mb-2"></i>
+                        <p>ไม่มีข้อมูลในช่วงเวลานี้</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filteredEntries.map(e => {
+                const formattedDate = new Date(e.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+                
+                if (e.entryType === 'expense' || (e.gross === 0 && e.expense > 0)) {
+                    return `
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 space-y-2">
+                            <div class="flex justify-between items-start border-b pb-2 dark:border-gray-700">
+                                <div>
+                                    <span class="text-xs font-semibold px-2 py-0.5 rounded bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400">
+                                        <i class="fa-solid fa-receipt text-[10px]"></i> ค่าใช้จ่ายเบ็ดเตล็ด • ${formattedDate}
+                                    </span>
+                                    <h3 class="font-semibold text-sm mt-1">${e.note}</h3>
+                                </div>
+                                <button onclick="deleteEntry('${e.id}')" class="text-gray-300 hover:text-rose-500 p-1">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+
+                            <div class="flex justify-between items-center text-sm font-bold bg-rose-50 dark:bg-rose-950/30 text-rose-500 p-2.5 rounded-xl">
+                                <span>จำนวนเงินค่าใช้จ่าย:</span>
+                                <span>- ฿${e.expense.toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const bucketsHTML = e.bucketBreakdown && e.bucketBreakdown.length > 0
+                    ? e.bucketBreakdown.map(b => `
+                        <div class="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                            <span>- ${b.name} (${b.type === 'percent' ? b.value + '%' : '฿' + b.value})</span>
+                            <span class="font-medium text-amber-600 dark:text-amber-400">฿${b.calculatedAmount.toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
+                        </div>
+                    `).join('')
+                    : `<div class="text-xs text-gray-400 italic">ไม่มีการหักกระปุก</div>`;
+
+                return `
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 space-y-2">
+                        <div class="flex justify-between items-start border-b pb-2 dark:border-gray-700">
+                            <div>
+                                <span class="text-xs font-semibold px-2 py-0.5 rounded bg-grab/10 text-grab dark:bg-grab/20">
+                                    <i class="fa-solid fa-car text-[10px]"></i> รอบวิ่ง • ${formattedDate}
+                                </span>
+                                <h3 class="font-semibold text-sm mt-1">${e.note}</h3>
+                            </div>
+                            <button onclick="deleteEntry('${e.id}')" class="text-gray-300 hover:text-rose-500 p-1">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+
+                        <div class="space-y-1 text-xs pt-1">
+                            <div class="flex justify-between text-gray-700 dark:text-gray-300">
+                                <span>รายรับรวม (Gross):</span>
+                                <span class="font-semibold">฿${e.gross.toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
+                            </div>
+                            ${e.fuel > 0 ? `<div class="flex justify-between text-red-500"><span>ค่าน้ำมัน (Fuel):</span><span>- ฿${e.fuel.toLocaleString('th-TH', {minimumFractionDigits: 2})}</span></div>` : ''}
+                            <div class="flex justify-between font-semibold text-grab border-t border-dashed pt-1 dark:border-gray-700">
+                                <span>รายได้สุทธิ (Net):</span>
+                                <span>฿${e.net.toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
+                            </div>
+
+                            <div class="pt-1 space-y-0.5 bg-amber-500/5 p-2 rounded-lg my-1 border border-amber-500/10">
+                                <div class="text-[11px] font-medium text-amber-700 dark:text-amber-300 mb-1">รายชื่อหักเข้ากระปุกออม:</div>
+                                ${bucketsHTML}
+                                <div class="flex justify-between font-semibold text-amber-600 dark:text-amber-400 border-t border-amber-200 dark:border-amber-800/40 pt-1 mt-1">
+                                    <span>รวมหักเข้ากระปุกทั้งหมด:</span>
+                                    <span>- ฿${e.totalBucketsDeduction.toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-between items-center text-sm font-bold bg-emerald-500/10 dark:bg-emerald-500/20 text-grab dark:text-emerald-400 p-2.5 rounded-xl mt-2">
+                                <span>เงินคงเหลือใช้จ่ายส่วนตัว:</span>
+                                <span>฿${e.takeHomeCash.toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderGoalsTab() {
+            const bucketTotals = {};
+            let lifetimeGross = 0;
+            let lifetimeFuel = 0;
+            let monthlyGross = 0;
+            let monthlyExpenses = 0;
+            const now = new Date();
+
+            state.entries.forEach(entry => {
+                lifetimeGross += entry.gross;
+                lifetimeFuel += entry.totalDeductions;
+
+                const eDate = new Date(entry.date);
+                if (eDate.getMonth() === now.getMonth() && eDate.getFullYear() === now.getFullYear()) {
+                    monthlyGross += entry.gross;
+                    monthlyExpenses += entry.totalDeductions;
+                }
+
+                if (entry.bucketBreakdown) {
+                    entry.bucketBreakdown.forEach(b => {
+                        bucketTotals[b.id] = (bucketTotals[b.id] || 0) + b.calculatedAmount;
+                    });
+                }
+            });
+
+            if (state.withdraws) {
+                state.withdraws.forEach(w => {
+                    bucketTotals[w.bucketId] = (bucketTotals[w.bucketId] || 0) - w.amount;
+                });
+            }
+
+            document.getElementById('totalLifetimeGross').textContent = `฿${lifetimeGross.toLocaleString('th-TH')}`;
+            document.getElementById('totalLifetimeFuel').textContent = `฿${lifetimeFuel.toLocaleString('th-TH')}`;
+            document.getElementById('monthlyGross').textContent = `฿${monthlyGross.toLocaleString('th-TH')}`;
+            document.getElementById('monthlyExpenses').textContent = `฿${monthlyExpenses.toLocaleString('th-TH')}`;
+
+            const balancesContainer = document.getElementById('bucketBalances');
+
+            balancesContainer.innerHTML = state.buckets.map(b => {
+                const currentAmount = Math.max(0, bucketTotals[b.id] || 0);
+                const target = b.target || 0;
+                const percentProgress = target > 0 ? Math.min(100, (currentAmount / target) * 100) : 100;
+
+                return `
+                    <div class="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-200 dark:border-gray-600 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="font-semibold text-sm">${b.name}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-bold text-grab">฿${currentAmount.toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
+                                <button onclick="openWithdrawModal('${b.id}', '${b.name}', ${currentAmount})" class="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-white px-2 py-1 rounded-lg transition-colors">เบิก</button>
+                            </div>
+                        </div>
+                        ${target > 0 ? `
+                            <div class="space-y-1">
+                                <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2 overflow-hidden">
+                                    <div class="bg-grab h-2 rounded-full transition-all duration-500" style="width: ${percentProgress}%"></div>
+                                </div>
+                                <div class="flex justify-between text-[11px] text-gray-500 dark:text-gray-400">
+                                    <span>เป้าหมาย ฿${target.toLocaleString('th-TH')}</span>
+                                    <span>${percentProgress.toFixed(1)}%</span>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // --- Withdraw Modal Functions ---
+        function openWithdrawModal(bucketId, bucketName, currentAmount) {
+            document.getElementById('withdrawBucketId').value = bucketId;
+            document.getElementById('withdrawBucketName').textContent = bucketName;
+            document.getElementById('withdrawBucketCurrent').textContent = `฿${currentAmount.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+            document.getElementById('withdrawAmount').value = '';
+            document.getElementById('withdrawModal').classList.remove('hidden');
+        }
+
+        function closeWithdrawModal() {
+            document.getElementById('withdrawModal').classList.add('hidden');
+        }
+
+        function processWithdraw() {
+            const bucketId = document.getElementById('withdrawBucketId').value;
+            const amount = parseFloat(document.getElementById('withdrawAmount').value) || 0;
+
+            if (amount <= 0) {
+                showToast('กรุณาระบุจำนวนเงินที่ต้องการเบิกให้ถูกต้อง');
+                return;
+            }
+
+            if (!state.withdraws) state.withdraws = [];
+            state.withdraws.push({
+                id: 'w_' + Date.now(),
+                bucketId,
+                amount,
+                date: new Date().toISOString()
+            });
+
+            saveState();
+            closeWithdrawModal();
+            renderAll();
+            showToast('เบิกเงินออกจากกระปุกสำเร็จ');
+        }
+
+        // --- Daily Target Modal Functions ---
+        function openTargetModal() {
+            document.getElementById('inputDailyGoal').value = state.dailyGoal || 1500;
+            document.getElementById('targetModal').classList.remove('hidden');
+        }
+        function closeTargetModal() {
+            document.getElementById('targetModal').classList.add('hidden');
+        }
+        function saveDailyGoal() {
+            const goal = parseFloat(document.getElementById('inputDailyGoal').value);
+            if (isNaN(goal) || goal <= 0) {
+                showToast('กรุณาระบุตัวเลขเป้าหมายให้ถูกต้อง');
+                return;
+            }
+            state.dailyGoal = goal;
+            saveState();
+            closeTargetModal();
+            renderAll();
+            showToast('บันทึกเป้าหมายรายวันสำเร็จ');
+        }
+
+        // --- Bucket Management Functions ---
+        function openBucketModal(id = null) {
+            const modal = document.getElementById('bucketModal');
+            modal.classList.remove('hidden');
+
+            if (id) {
+                const b = state.buckets.find(x => x.id === id);
+                if (b) {
+                    document.getElementById('modalTitle').textContent = 'แก้ไขกระปุก';
+                    document.getElementById('bucketId').value = b.id;
+                    document.getElementById('bucketName').value = b.name;
+                    document.getElementById('bucketType').value = b.type;
+                    document.getElementById('bucketValue').value = b.value;
+                    document.getElementById('bucketTarget').value = b.target || '';
+                }
+            } else {
+                document.getElementById('modalTitle').textContent = 'เพิ่มกระปุกใหม่';
+                document.getElementById('bucketId').value = '';
+                document.getElementById('bucketName').value = '';
+                document.getElementById('bucketType').value = 'percent';
+                document.getElementById('bucketValue').value = '10';
+                document.getElementById('bucketTarget').value = '';
+            }
+            toggleBucketTypeInput();
+        }
+
+        function closeBucketModal() {
+            document.getElementById('bucketModal').classList.add('hidden');
+        }
+
+        function toggleBucketTypeInput() {
+            const type = document.getElementById('bucketType').value;
+            const label = document.getElementById('bucketValLabel');
+            label.textContent = type === 'percent' ? 'สัดส่วน (%)' : 'จำนวนเงิน (฿)';
+        }
+
+        function saveBucket() {
+            const id = document.getElementById('bucketId').value;
+            const name = document.getElementById('bucketName').value.trim();
+            const type = document.getElementById('bucketType').value;
+            const value = parseFloat(document.getElementById('bucketValue').value) || 0;
+            const target = parseFloat(document.getElementById('bucketTarget').value) || 0;
+
+            if (!name) { showToast('กรุณาระบุชื่อกระปุก'); return; }
+
+            if (id) {
+                const b = state.buckets.find(x => x.id === id);
+                if (b) { b.name = name; b.type = type; b.value = value; b.target = target; }
+            } else {
+                state.buckets.push({ id: 'b_' + Date.now(), name, type, value, target, enabled: true });
+            }
+
+            saveState();
+            closeBucketModal();
+            renderAll();
+            showToast('บันทึกกระปุกเรียบร้อย');
+        }
+
+        function toggleBucketEnabled(id) {
+            const b = state.buckets.find(x => x.id === id);
+            if (b) { b.enabled = !b.enabled; saveState(); renderAll(); }
+        }
+
+        function deleteBucket(id) {
+            if (confirm('คุณต้องการลบกระปุกนี้หรือไม่?')) {
+                state.buckets = state.buckets.filter(x => x.id !== id);
+                saveState();
+                renderAll();
+                showToast('ลบกระปุกเรียบร้อย');
+            }
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-grab');
+                btn.classList.add('text-gray-400');
+            });
+
+            const activeBtn = document.getElementById('nav-' + tabId);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-gray-400');
+                activeBtn.classList.add('text-grab');
+            }
+        }
+
+        function toggleTheme() {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                state.theme = 'light';
+            } else {
+                document.documentElement.classList.add('dark');
+                state.theme = 'dark';
+            }
+            updateThemeIcon();
+            saveState();
+        }
+
+        function updateThemeIcon() {
+            const icon = document.getElementById('themeIcon');
+            if (document.documentElement.classList.contains('dark')) {
+                icon.className = 'fa-solid fa-sun text-yellow-400 text-lg';
+            } else {
+                icon.className = 'fa-solid fa-moon text-lg';
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').textContent = message;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 2500);
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `grab_fintrack_backup_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedState = JSON.parse(e.target.result);
+                    if (importedState && importedState.buckets && importedState.entries) {
+                        state = importedState;
+                        if (!state.withdraws) state.withdraws = [];
+                        if (!state.dailyGoal) state.dailyGoal = 1500;
+                        saveState();
+                        renderAll();
+                        showToast('นำเข้าข้อมูลสำเร็จ');
+                    } else {
+                        showToast('รูปแบบไฟล์ไม่ถูกต้อง');
+                    }
+                } catch (err) {
+                    showToast('เกิดข้อผิดพลาดในการอ่านไฟล์');
+                }
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
